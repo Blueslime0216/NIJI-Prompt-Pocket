@@ -1,8 +1,10 @@
 """NIJI Prompt Pocket: 번호 메뉴로 사용하는 프롬프트 관리 프로그램."""
 
 import sys
+import shutil
 
 from seed_data import CATEGORIES, create_initial_prompts
+from image_preview import ImagePreviewError, normalize_image_path, render_ascii
 
 
 def read_required(message):
@@ -65,12 +67,13 @@ def add_prompt(prompts):
     title = read_required("제목: ")
     content = read_content()
     category = choose_category(prompts)
+    image_path = read_image_path()
     prompts.append({
         "title": title,
         "content": content,
         "category": category,
         "favorite": False,
-        "image_path": None,
+        "image_path": image_path,
     })
     print(f"{len(prompts)}번 프롬프트를 추가했습니다: {title}")
 
@@ -136,6 +139,17 @@ def show_detail(prompts):
     print(f"즐겨찾기: {'⭐ 등록됨' if prompt['favorite'] else '미등록'}")
     print("내용:")
     print(prompt["content"])
+    image_path = prompt.get("image_path")
+    if not image_path:
+        print("참고 이미지: 없음 (8번 메뉴에서 연결할 수 있습니다.)")
+        return
+    print(f"\n참고 이미지: {image_path}")
+    try:
+        width = min(72, max(8, shutil.get_terminal_size((80, 24)).columns - 4))
+        print("[ASCII 미리보기]")
+        print(render_ascii(image_path, width=width))
+    except ImagePreviewError as error:
+        print(f"이미지 안내: {error}")
 
 
 def toggle_favorite(prompts):
@@ -154,6 +168,30 @@ def show_favorites(prompts):
         print("즐겨찾기한 프롬프트가 없습니다.")
         return
     print_prompt_rows(rows)
+
+
+def read_image_path(current=None):
+    print("참고 이미지 한 장을 연결할 수 있습니다. 상대 경로는 프로젝트 폴더 기준입니다.")
+    print("파일 경로 입력 / Enter: 현재 연결 유지 또는 건너뛰기 / -: 연결 해제")
+    while True:
+        value = input("이미지 경로: ").strip()
+        if not value:
+            return current
+        if value == "-":
+            return None
+        try:
+            return normalize_image_path(value)
+        except ImagePreviewError as error:
+            print(f"이미지 안내: {error}")
+
+
+def attach_image(prompts):
+    prompt = select_prompt(prompts)
+    if prompt is None:
+        return
+    print(f"현재 이미지: {prompt.get('image_path') or '없음'}")
+    prompt["image_path"] = read_image_path(prompt.get("image_path"))
+    print(f"참고 이미지: {prompt['image_path'] or '없음'}")
 
 
 def show_menu(actions):
@@ -180,8 +218,9 @@ def main():
         "5": ("상세 보기 / 이미지 미리보기", show_detail),
         "6": ("즐겨찾기 추가 / 해제", toggle_favorite),
         "7": ("즐겨찾기 목록", show_favorites),
+        "8": ("참고 이미지 연결 / 교체 / 해제", attach_image),
     }
-    print("NIJI용 예시 프롬프트 3개가 준비되어 있습니다.")
+    print("NIJI용 기본 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
     try:
         while True:
