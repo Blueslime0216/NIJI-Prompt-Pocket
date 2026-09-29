@@ -366,6 +366,7 @@ def main():
                 break
             action = actions.get(choice)
             if action is None:
+                clear_screen()
                 print("잘못된 메뉴 번호입니다. 메뉴에서 다시 선택해 주세요.")
                 continue
             clear_screen()
