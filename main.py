@@ -138,6 +138,24 @@ def show_detail(prompts):
     print(prompt["content"])
 
 
+def toggle_favorite(prompts):
+    prompt = select_prompt(prompts)
+    if prompt is None:
+        return
+    prompt["favorite"] = not prompt["favorite"]
+    state = "등록" if prompt["favorite"] else "해제"
+    print(f"'{prompt['title']}' 즐겨찾기를 {state}했습니다.")
+
+
+def show_favorites(prompts):
+    print("\n[즐겨찾기 목록]")
+    rows = [(i, p) for i, p in enumerate(prompts, 1) if p["favorite"]]
+    if not rows:
+        print("즐겨찾기한 프롬프트가 없습니다.")
+        return
+    print_prompt_rows(rows)
+
+
 def show_menu(actions):
     print("\n" + "=" * 46)
     print("NIJI Prompt Pocket | 프롬프트 관리")
@@ -160,6 +178,8 @@ def main():
         "3": ("카테고리별 조회", show_by_category),
         "4": ("키워드 검색", search_prompts),
         "5": ("상세 보기 / 이미지 미리보기", show_detail),
+        "6": ("즐겨찾기 추가 / 해제", toggle_favorite),
+        "7": ("즐겨찾기 목록", show_favorites),
     }
     print("NIJI용 예시 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
