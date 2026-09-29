@@ -11,6 +11,7 @@ _dev/
 AGENTS.md
 과제.md
 local-images/
+/local-data/
 submission/screenshots/
 submission/local-*.txt
 .codex/

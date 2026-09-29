@@ -1,7 +1,8 @@
-"""번호 유지, 입력 검증, 세션 초기화, 이미지 오류를 확인하는 회귀 테스트."""
+"""번호 유지, 입력 검증, 재실행 후 저장 상태, 이미지 오류를 확인하는 회귀 테스트."""
 
 import contextlib
 import io
+import os
 import re
 from pathlib import Path
 import subprocess
@@ -234,15 +235,17 @@ class ImageTests(unittest.TestCase):
 
 
 class ConsoleTests(unittest.TestCase):
-    def test_full_console_session_and_relaunch_from_another_directory(self):
+    def test_full_console_session_persists_after_relaunch_from_another_directory(self):
         answers = [
             "bad", "2", "", "1", "추가 테스트", "prompt line 1", "prompt line 2", ".", "2", "",
             "4", "prompt line", "4", "", "6", "4", "7", "4", "", "5", "3", "0", "0",
         ]
         with tempfile.TemporaryDirectory() as temporary:
+            environment = os.environ.copy()
+            environment["NIJI_PROMPT_POCKET_DATA_DIR"] = str(Path(temporary) / "prompt-data")
             run = subprocess.run([sys.executable, "-X", "utf8", str(ROOT / "main.py")],
                 input="\n".join(answers) + "\n", text=True, encoding="utf-8",
-                capture_output=True, cwd=temporary, timeout=20)
+                capture_output=True, cwd=temporary, env=environment, timeout=20)
             self.assertEqual(run.returncode, 0, run.stderr)
             for expected in ["잘못된 메뉴 번호", "4번 프롬프트를 추가", "4. ⭐", "[ASCII 미리보기]"]:
                 self.assertIn(expected, run.stdout)
@@ -250,14 +253,14 @@ class ConsoleTests(unittest.TestCase):
             self.assertNotIn("메뉴로 돌아가려면 Enter를 누르세요", run.stdout)
             self.assertNotIn("입력이 종료되었습니다", run.stdout)
             self.assertEqual(run.stdout.count("잘못된 메뉴 번호"), 1)
-            reset = subprocess.run([sys.executable, str(ROOT / "main.py")],
+            relaunch = subprocess.run([sys.executable, str(ROOT / "main.py")],
                 input="2\n\n7\n0\n", text=True, encoding="utf-8", capture_output=True,
-                cwd=temporary, timeout=20)
-            self.assertEqual(reset.returncode, 0, reset.stderr)
-            self.assertIn("전체 프롬프트: 3개", reset.stdout)
-            self.assertNotIn("추가 테스트", reset.stdout)
-            self.assertIn("즐겨찾기한 프롬프트가 없습니다", reset.stdout)
-            self.assertNotIn("잘못된 메뉴 번호", reset.stdout)
+                cwd=temporary, env=environment, timeout=20)
+            self.assertEqual(relaunch.returncode, 0, relaunch.stderr)
+            self.assertIn("전체 프롬프트: 4개", relaunch.stdout)
+            self.assertIn("추가 테스트", relaunch.stdout)
+            self.assertIn("저장된 프롬프트 4개를 불러왔습니다", relaunch.stdout)
+            self.assertNotIn("잘못된 메뉴 번호", relaunch.stdout)
 
     def test_end_of_input_exits_cleanly(self):
         run = subprocess.run([sys.executable, str(ROOT / "main.py")], input="",
