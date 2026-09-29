@@ -5,7 +5,7 @@
 1. `seed_data.py`: `SAMPLE_PROMPTS`는 리스트이고, 각 프롬프트는 딕셔너리입니다. `favorite`에는 `True`/`False` 불리언을 사용합니다.
 2. `main.py`의 `main()`: 실행마다 새 데이터를 만들고, `while` 반복문에서 메뉴 번호를 입력받습니다. `if` 조건문으로 종료와 잘못된 번호를 처리합니다.
 3. `add_prompt()`: 값을 입력받아 딕셔너리를 만들고 `append()`로 리스트에 추가합니다. `read_required()`는 공백 입력을 거절합니다.
-4. `show_list()`와 `print_prompt_rows()`: `enumerate(..., start=1)`로 번호를 붙입니다. 검색·카테고리·즐겨찾기 결과에서도 같은 번호를 유지합니다.
+4. `show_list()`와 `print_prompt_rows()`: `enumerate(..., start=1)`로 번호를 붙입니다. 검색·카테고리·즐겨찾기 결과에서도 같은 번호를 유지합니다. `browse_prompt_rows()`는 현재 결과에 있는 번호만 받아 `print_prompt_detail()`로 상세를 출력합니다. Enter/0을 입력할 때까지 같은 목록에서 계속 선택할 수 있습니다.
 5. `search_prompts()`와 `show_by_category()`: 조건에 맞는 데이터만 모읍니다. 검색에서는 `casefold()`로 대소문자 차이를 없앱니다.
 6. `toggle_favorite()`: `not`으로 즐겨찾기 여부를 뒤집습니다.
 7. `image_preview.py`: 파일을 읽고 작게 줄인 뒤 밝기 값을 문자에 대응시킵니다. 컬러 ASCII는 글자에 RGB 색상을 적용합니다. 컬러 픽셀은 `▀` 문자의 글자색에 위쪽 픽셀, 배경색에 아래쪽 픽셀을 넣습니다. 오류는 `try`/`except`로 처리합니다.

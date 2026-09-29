@@ -17,10 +17,10 @@ from seed_data import create_initial_prompts
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def call_with_input(function, prompts, answers=()):
+def call_with_input(function, prompts, answers=(), **kwargs):
     output = io.StringIO()
     with patch("builtins.input", side_effect=answers), contextlib.redirect_stdout(output):
-        function(prompts)
+        function(prompts, **kwargs)
     return output.getvalue()
 
 
@@ -52,23 +52,23 @@ class PromptTests(unittest.TestCase):
         self.assertIn("직접 만든 분류", main.get_categories(self.prompts))
 
     def test_search_matches_content_case_insensitively_and_keeps_original_number(self):
-        output = call_with_input(main.search_prompts, self.prompts, ["", "ANIME"])
+        output = call_with_input(main.search_prompts, self.prompts, ["", "ANIME", ""])
         self.assertIn("3. ", output)
         self.assertIn("애니메이션 클로즈업", output)
         self.assertNotIn("Live2D 전신", output)
 
     def test_search_matches_title_and_handles_no_results(self):
-        self.assertIn("2개", call_with_input(main.search_prompts, self.prompts, ["전신"]))
+        self.assertIn("2개", call_with_input(main.search_prompts, self.prompts, ["전신", ""]))
         self.assertIn("검색 결과가 없습니다", call_with_input(main.search_prompts, self.prompts, ["없음123"]))
 
     def test_category_empty_and_original_numbers(self):
         self.assertIn("표시할 프롬프트가 없습니다", call_with_input(main.show_by_category, self.prompts, ["1"]))
-        self.assertIn("3. ", call_with_input(main.show_by_category, self.prompts, ["2"]))
+        self.assertIn("3. ", call_with_input(main.show_by_category, self.prompts, ["2", ""]))
 
     def test_favorite_toggle_and_empty_favorites(self):
         call_with_input(main.toggle_favorite, self.prompts, ["x", "99", "2"])
         self.assertTrue(self.prompts[1]["favorite"])
-        output = call_with_input(main.show_favorites, self.prompts)
+        output = call_with_input(main.show_favorites, self.prompts, [""])
         self.assertIn("2. ⭐", output)
         self.assertNotIn("chaos 40", output)
         call_with_input(main.toggle_favorite, self.prompts, ["2"])
@@ -82,7 +82,7 @@ class PromptTests(unittest.TestCase):
 
     def test_detail_survives_missing_image(self):
         self.prompts[0]["image_path"] = "does-not-exist.png"
-        output = call_with_input(main.show_detail, self.prompts, ["1"])
+        output = call_with_input(main.show_detail, self.prompts, ["1", ""])
         self.assertIn(self.prompts[0]["content"], output)
         self.assertIn("이미지 안내", output)
 
@@ -95,6 +95,66 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(self.prompts[0]["image_path"], "assets/sample-03.png")
         call_with_input(main.attach_image, self.prompts, ["1", "-"])
         self.assertIsNone(self.prompts[0]["image_path"])
+
+
+class NavigationTests(unittest.TestCase):
+    def setUp(self):
+        self.prompts = create_initial_prompts()
+        for prompt in self.prompts:
+            prompt["image_path"] = None
+
+    def test_list_can_open_multiple_details_without_leaving_results(self):
+        output = call_with_input(main.show_list, self.prompts, ["2", "1", ""])
+        self.assertEqual(output.count("[상세 보기]"), 2)
+        self.assertLess(output.index("[상세 보기] " + self.prompts[1]["title"]),
+                        output.index("[상세 보기] " + self.prompts[0]["title"]))
+        self.assertEqual(output.count("[현재 목록]"), 2)
+
+    def test_search_rejects_non_result_numbers_and_keeps_original_id(self):
+        output = call_with_input(main.search_prompts, self.prompts,
+                                 ["ANIME", "abc", "-1", "1", "99", "3", "0"])
+        self.assertEqual(output.count("[상세 보기]"), 1)
+        self.assertIn("[상세 보기] " + self.prompts[2]["title"], output)
+        self.assertNotIn("[상세 보기] " + self.prompts[0]["title"], output)
+        self.assertEqual(output.count("현재 목록에 있는"), 3)
+
+    def test_category_details_only_accept_visible_number(self):
+        self.prompts[1]["category"] = "텍스트 생성"
+        output = call_with_input(main.show_by_category, self.prompts, ["1", "1", "2", ""])
+        self.assertIn("현재 목록에 있는", output)
+        self.assertIn("[상세 보기] " + self.prompts[1]["title"], output)
+        self.assertEqual(output.count("[상세 보기]"), 1)
+
+    def test_favorites_can_open_detail_and_return_with_zero(self):
+        self.prompts[1]["favorite"] = True
+        output = call_with_input(main.show_favorites, self.prompts, ["1", "2", "0"])
+        self.assertIn("현재 목록에 있는", output)
+        self.assertIn("즐겨찾기: ⭐ 등록됨", output)
+        self.assertEqual(output.count("[상세 보기]"), 1)
+
+    def test_all_detail_routes_preserve_selected_color_mode(self):
+        prompts = create_initial_prompts()
+        prompts[1]["favorite"] = True
+        scenarios = [
+            (main.show_list, ["2", ""], 1),
+            (main.show_by_category, ["2", "2", ""], 1),
+            (main.search_prompts, ["ANIME", "3", ""], 2),
+            (main.show_favorites, ["2", ""], 1),
+            (main.show_detail, ["1", ""], 0),
+        ]
+        for function, answers, index in scenarios:
+            with self.subTest(route=function.__name__), patch("main.render_ascii", return_value="PREVIEW") as render:
+                output = call_with_input(function, prompts, answers, mode="pixel")
+                self.assertIn("컬러 픽셀", output)
+                self.assertEqual(render.call_count, 1)
+                self.assertEqual(render.call_args.args[0], prompts[index]["image_path"])
+                self.assertEqual(render.call_args.kwargs["mode"], "pixel")
+
+    def test_empty_results_do_not_wait_for_navigation_input(self):
+        for function in (main.show_list, main.show_favorites, main.show_detail):
+            with self.subTest(route=function.__name__):
+                output = call_with_input(function, [])
+                self.assertNotIn("상세 볼 프롬프트 번호", output)
 
 
 class ImageTests(unittest.TestCase):
@@ -170,14 +230,14 @@ class ImageTests(unittest.TestCase):
         with patch.dict(sys.modules, {"PIL": None}):
             with self.assertRaisesRegex(ImagePreviewError, "Pillow"):
                 render_ascii("assets/sample-01.png")
-            self.assertIn("3개", call_with_input(main.show_list, create_initial_prompts()))
+            self.assertIn("3개", call_with_input(main.show_list, create_initial_prompts(), [""]))
 
 
 class ConsoleTests(unittest.TestCase):
     def test_full_console_session_and_relaunch_from_another_directory(self):
         answers = [
-            "bad", "2", "", "1", "추가 테스트", "prompt line 1", "prompt line 2", ".", "2", "", "",
-            "4", "prompt line", "", "6", "4", "", "7", "", "5", "3", "", "0",
+            "bad", "2", "", "1", "추가 테스트", "prompt line 1", "prompt line 2", ".", "2", "",
+            "4", "prompt line", "4", "", "6", "4", "7", "4", "", "5", "3", "0", "0",
         ]
         with tempfile.TemporaryDirectory() as temporary:
             run = subprocess.run([sys.executable, "-X", "utf8", str(ROOT / "main.py")],
@@ -187,13 +247,17 @@ class ConsoleTests(unittest.TestCase):
             for expected in ["잘못된 메뉴 번호", "4번 프롬프트를 추가", "4. ⭐", "[ASCII 미리보기]"]:
                 self.assertIn(expected, run.stdout)
             self.assertNotIn("Traceback", run.stdout + run.stderr)
+            self.assertNotIn("메뉴로 돌아가려면 Enter를 누르세요", run.stdout)
+            self.assertNotIn("입력이 종료되었습니다", run.stdout)
+            self.assertEqual(run.stdout.count("잘못된 메뉴 번호"), 1)
             reset = subprocess.run([sys.executable, str(ROOT / "main.py")],
-                input="2\n\n7\n\n0\n", text=True, encoding="utf-8", capture_output=True,
+                input="2\n\n7\n0\n", text=True, encoding="utf-8", capture_output=True,
                 cwd=temporary, timeout=20)
             self.assertEqual(reset.returncode, 0, reset.stderr)
             self.assertIn("전체 프롬프트: 3개", reset.stdout)
             self.assertNotIn("추가 테스트", reset.stdout)
             self.assertIn("즐겨찾기한 프롬프트가 없습니다", reset.stdout)
+            self.assertNotIn("잘못된 메뉴 번호", reset.stdout)
 
     def test_end_of_input_exits_cleanly(self):
         run = subprocess.run([sys.executable, str(ROOT / "main.py")], input="",

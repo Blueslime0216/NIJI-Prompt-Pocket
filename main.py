@@ -91,12 +91,37 @@ def print_prompt_rows(rows):
         print(f"{number:>3}. {star} {prompt['title']} | {prompt['category']}")
 
 
-def show_list(prompts):
+def browse_prompt_rows(rows, mode="plain"):
+    """현재 결과 목록 안에서 번호로 상세 보기를 반복해서 엽니다."""
+    print_prompt_rows(rows)
+    if not rows:
+        return
+    available = dict(rows)
+    while True:
+        value = input("\n상세 볼 프롬프트 번호 (Enter 또는 0: 메뉴): ").strip()
+        if not value:
+            return
+        try:
+            number = int(value)
+        except ValueError:
+            print("프롬프트 번호를 입력하거나 Enter로 메뉴로 돌아가세요.")
+            continue
+        if number == 0:
+            return
+        if number not in available:
+            print("현재 목록에 있는 프롬프트 번호를 입력해 주세요.")
+            continue
+        print_prompt_detail(available[number], mode)
+        print("\n[현재 목록]")
+        print_prompt_rows(rows)
+
+
+def show_list(prompts, mode="plain"):
     print(f"\n[전체 프롬프트: {len(prompts)}개]")
-    print_prompt_rows(list(enumerate(prompts, start=1)))
+    browse_prompt_rows(list(enumerate(prompts, start=1)), mode)
 
 
-def show_by_category(prompts):
+def show_by_category(prompts, mode="plain"):
     print("\n[카테고리별 조회]")
     categories = get_categories(prompts)
     for number, category in enumerate(categories, start=1):
@@ -107,10 +132,10 @@ def show_by_category(prompts):
     category = categories[number - 1]
     print(f"\n[{category}]")
     rows = [(i, p) for i, p in enumerate(prompts, 1) if p["category"] == category]
-    print_prompt_rows(rows)
+    browse_prompt_rows(rows, mode)
 
 
-def search_prompts(prompts):
+def search_prompts(prompts, mode="plain"):
     print("\n[프롬프트 검색]")
     keyword = read_required("검색어 (제목 또는 내용): ").casefold()
     rows = [
@@ -121,22 +146,28 @@ def search_prompts(prompts):
         print("검색 결과가 없습니다.")
         return
     print(f"\n[검색 결과: {len(rows)}개]")
-    print_prompt_rows(rows)
+    browse_prompt_rows(rows, mode)
 
 
 def select_prompt(prompts):
     if not prompts:
         print("등록된 프롬프트가 없습니다.")
         return None
-    show_list(prompts)
+    print(f"\n[전체 프롬프트: {len(prompts)}개]")
+    print_prompt_rows(list(enumerate(prompts, start=1)))
     number = read_number("프롬프트 번호 (0: 취소): ", len(prompts))
     return prompts[number - 1] if number else None
 
 
 def show_detail(prompts, mode="plain"):
-    prompt = select_prompt(prompts)
-    if prompt is None:
+    if not prompts:
+        print("등록된 프롬프트가 없습니다.")
         return
+    show_list(prompts, mode)
+
+
+def print_prompt_detail(prompt, mode="plain"):
+    """프롬프트 하나의 내용과 이미지를 출력합니다. 선택 입력은 받지 않습니다."""
     print(f"\n[상세 보기] {prompt['title']}")
     print(f"카테고리: {prompt['category']}")
     print(f"즐겨찾기: {'⭐ 등록됨' if prompt['favorite'] else '미등록'}")
@@ -164,13 +195,13 @@ def toggle_favorite(prompts):
     print(f"'{prompt['title']}' 즐겨찾기를 {state}했습니다.")
 
 
-def show_favorites(prompts):
+def show_favorites(prompts, mode="plain"):
     print("\n[즐겨찾기 목록]")
     rows = [(i, p) for i, p in enumerate(prompts, 1) if p["favorite"]]
     if not rows:
         print("즐겨찾기한 프롬프트가 없습니다.")
         return
-    print_prompt_rows(rows)
+    browse_prompt_rows(rows, mode)
 
 
 def read_image_path(current=None):
@@ -236,12 +267,12 @@ def main():
     }
     actions = {
         "1": ("프롬프트 추가", add_prompt),
-        "2": ("전체 목록", show_list),
-        "3": ("카테고리별 조회", show_by_category),
-        "4": ("키워드 검색", search_prompts),
+        "2": ("전체 목록", lambda data: show_list(data, settings["preview_mode"])),
+        "3": ("카테고리별 조회", lambda data: show_by_category(data, settings["preview_mode"])),
+        "4": ("키워드 검색", lambda data: search_prompts(data, settings["preview_mode"])),
         "5": ("상세 보기 / 이미지 미리보기", lambda data: show_detail(data, settings["preview_mode"])),
         "6": ("즐겨찾기 추가 / 해제", toggle_favorite),
-        "7": ("즐겨찾기 목록", show_favorites),
+        "7": ("즐겨찾기 목록", lambda data: show_favorites(data, settings["preview_mode"])),
         "8": ("참고 이미지 연결 / 교체 / 해제", attach_image),
         "9": ("이미지 표시 방식 변경", lambda _: choose_preview_mode(settings)),
     }
@@ -259,7 +290,6 @@ def main():
                 print("잘못된 메뉴 번호입니다. 메뉴에서 다시 선택해 주세요.")
                 continue
             action[1](prompts)
-            input("\n메뉴로 돌아가려면 Enter를 누르세요: ")
     except (EOFError, KeyboardInterrupt):
         print("\n입력이 종료되었습니다.")
     print("프로그램을 종료합니다. 이번 실행의 변경사항은 초기화됩니다.")
