@@ -70,30 +70,72 @@ def normalize_image_path(value):
     return str(path)
 
 
-def render_ascii(value, width=72, max_height=32):
-    """문자 셀의 가로:세로 비율(약 1:2)을 보정한 흑백 미리보기입니다."""
+def render_ascii(value, width=72, max_height=32, mode="plain"):
+    """plain / color / pixel 모드로 터미널 문자열을 만듭니다.
+
+    pixel은 ▀의 글자색과 배경색에 위/아래 픽셀을 각각 넣습니다.
+    색상 지원 여부 판단은 호출하는 콘솔 코드가 담당합니다.
+    """
     from math import floor
 
+    if mode not in {"plain", "color", "pixel"}:
+        raise ValueError("지원하지 않는 이미지 표시 방식입니다.")
     width = max(8, min(160, int(width)))
     max_height = max(4, min(80, int(max_height)))
     with _load_image(value) as source:
         from PIL import Image
 
-        ratio = source.height / source.width * 0.5
+        ratio = source.height / source.width * (1.0 if mode == "pixel" else 0.5)
         height = max(1, round(width * ratio))
-        if height > max_height:
-            height = max_height
+        limit = max_height * 2 if mode == "pixel" else max_height
+        if height > limit:
+            height = limit
             width = max(1, floor(height / ratio))
-        gray = source.convert("L").resize((width, height), Image.Resampling.LANCZOS)
-        pixels = gray.tobytes()
+        resized = source.resize((width, height), Image.Resampling.LANCZOS)
+        if mode == "pixel":
+            return _render_half_blocks(resized)
+        pixels = resized.convert("L").tobytes()
+        rgb = resized.tobytes()
 
     # 흰 배경과 검은 배경 모두에서 빈 배경이 공백에 가깝게 보이도록 선택합니다.
     border = list(pixels[:width]) + list(pixels[-width:])
     border += [pixels[row * width] for row in range(height)]
     border += [pixels[(row + 1) * width - 1] for row in range(height)]
     shades = " .:-=+*#%@" if sum(border) / len(border) < 128 else "@%#*+=-:. "
+    if mode == "color":
+        shades = " .:-=+*#%@"
     lines = []
     for row in range(height):
-        line = pixels[row * width:(row + 1) * width]
-        lines.append("".join(shades[pixel * (len(shades) - 1) // 255] for pixel in line))
+        line = []
+        for column in range(width):
+            position = row * width + column
+            character = shades[pixels[position] * (len(shades) - 1) // 255]
+            if mode == "color":
+                red, green, blue = rgb[position * 3:position * 3 + 3]
+                line.append(f"\x1b[38;2;{red};{green};{blue}m{character}")
+            else:
+                line.append(character)
+        if mode == "color":
+            line.append("\x1b[0m")
+        lines.append("".join(line))
+    return "\n".join(lines)
+
+
+def _render_half_blocks(image):
+    """한 문자에 세로 두 픽셀을 출력하고 줄마다 색상을 초기화합니다."""
+    width, height = image.size
+    pixels = image.tobytes()
+    lines = []
+    for row in range(0, height, 2):
+        line = []
+        for column in range(width):
+            upper = (row * width + column) * 3
+            lower = (min(row + 1, height - 1) * width + column) * 3
+            red1, green1, blue1 = pixels[upper:upper + 3]
+            red2, green2, blue2 = pixels[lower:lower + 3]
+            line.append(
+                f"\x1b[38;2;{red1};{green1};{blue1}m"
+                f"\x1b[48;2;{red2};{green2};{blue2}m▀"
+            )
+        lines.append("".join(line) + "\x1b[0m")
     return "\n".join(lines)

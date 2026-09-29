@@ -5,6 +5,9 @@ import shutil
 
 from seed_data import CATEGORIES, create_initial_prompts
 from image_preview import ImagePreviewError, normalize_image_path, render_ascii
+from terminal_support import enable_color
+
+PREVIEW_LABELS = {"plain": "흑백 ASCII", "color": "컬러 ASCII", "pixel": "컬러 픽셀"}
 
 
 def read_required(message):
@@ -130,7 +133,7 @@ def select_prompt(prompts):
     return prompts[number - 1] if number else None
 
 
-def show_detail(prompts):
+def show_detail(prompts, mode="plain"):
     prompt = select_prompt(prompts)
     if prompt is None:
         return
@@ -146,8 +149,8 @@ def show_detail(prompts):
     print(f"\n참고 이미지: {image_path}")
     try:
         width = min(72, max(8, shutil.get_terminal_size((80, 24)).columns - 4))
-        print("[ASCII 미리보기]")
-        print(render_ascii(image_path, width=width))
+        print(f"[ASCII 미리보기] {PREVIEW_LABELS[mode]}")
+        print(render_ascii(image_path, width=width, mode=mode))
     except ImagePreviewError as error:
         print(f"이미지 안내: {error}")
 
@@ -194,6 +197,22 @@ def attach_image(prompts):
     print(f"참고 이미지: {prompt['image_path'] or '없음'}")
 
 
+def choose_preview_mode(settings):
+    print(f"\n현재 표시 방식: {PREVIEW_LABELS[settings['preview_mode']]}")
+    print("1. 흑백 ASCII\n2. 컬러 ASCII\n3. 컬러 픽셀 (한 문자에 위/아래 두 픽셀)")
+    number = read_number("표시 방식 번호 (0: 취소): ", 3)
+    if number == 0:
+        return
+    mode = {1: "plain", 2: "color", 3: "pixel"}[number]
+    if mode != "plain" and not settings["color_supported"]:
+        print("현재 출력 환경에서 컬러를 사용할 수 없어 흑백 ASCII를 유지합니다.")
+        print("VSCode 터미널이나 Windows Terminal에서 직접 실행해 주세요.")
+        settings["preview_mode"] = "plain"
+        return
+    settings["preview_mode"] = mode
+    print(f"이미지 표시 방식을 {PREVIEW_LABELS[mode]}로 바꿨습니다.")
+
+
 def show_menu(actions):
     print("\n" + "=" * 46)
     print("NIJI Prompt Pocket | 프롬프트 관리")
@@ -210,18 +229,25 @@ def main():
             stream.reconfigure(encoding="utf-8")
 
     prompts = create_initial_prompts()
+    color_supported = enable_color()
+    settings = {
+        "color_supported": color_supported,
+        "preview_mode": "pixel" if color_supported else "plain",
+    }
     actions = {
         "1": ("프롬프트 추가", add_prompt),
         "2": ("전체 목록", show_list),
         "3": ("카테고리별 조회", show_by_category),
         "4": ("키워드 검색", search_prompts),
-        "5": ("상세 보기 / 이미지 미리보기", show_detail),
+        "5": ("상세 보기 / 이미지 미리보기", lambda data: show_detail(data, settings["preview_mode"])),
         "6": ("즐겨찾기 추가 / 해제", toggle_favorite),
         "7": ("즐겨찾기 목록", show_favorites),
         "8": ("참고 이미지 연결 / 교체 / 해제", attach_image),
+        "9": ("이미지 표시 방식 변경", lambda _: choose_preview_mode(settings)),
     }
     print("NIJI용 기본 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
+    print(f"이미지 표시: {PREVIEW_LABELS[settings['preview_mode']]} (9번 메뉴에서 변경)")
     try:
         while True:
             show_menu(actions)

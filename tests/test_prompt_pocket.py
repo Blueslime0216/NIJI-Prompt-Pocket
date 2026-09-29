@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -97,6 +98,39 @@ class PromptTests(unittest.TestCase):
 
 
 class ImageTests(unittest.TestCase):
+    def test_colored_modes_use_valid_rgb_and_reset_each_row(self):
+        for mode in ("color", "pixel"):
+            with self.subTest(mode=mode):
+                result = render_ascii("assets/sample-03.png", width=40, max_height=12, mode=mode)
+                self.assertIn("\x1b[38;2;", result)
+                self.assertTrue(all(line.endswith("\x1b[0m") for line in result.splitlines()))
+                stripped = re.sub(r"\x1b\[[0-9;]*m", "", result)
+                self.assertLessEqual(len(stripped.splitlines()), 12)
+                self.assertLessEqual(max(map(len, stripped.splitlines())), 40)
+                if mode == "pixel":
+                    self.assertIn("\x1b[48;2;", result)
+                    self.assertEqual(set(stripped.replace("\n", "")), {"▀"})
+
+    def test_half_block_uses_top_foreground_and_bottom_background(self):
+        from PIL import Image
+        from image_preview import _render_half_blocks
+        image = Image.new("RGB", (1, 2))
+        image.putpixel((0, 0), (255, 0, 0))
+        image.putpixel((0, 1), (0, 0, 255))
+        self.assertEqual(_render_half_blocks(image), "\x1b[38;2;255;0;0m\x1b[48;2;0;0;255m▀\x1b[0m")
+
+    def test_half_block_odd_height_and_display_fallback(self):
+        from PIL import Image
+        from image_preview import _render_half_blocks
+        self.assertEqual(len(_render_half_blocks(Image.new("RGB", (2, 3))).splitlines()), 2)
+        settings = {"preview_mode": "plain", "color_supported": False}
+        output = call_with_input(main.choose_preview_mode, settings, ["3"])
+        self.assertEqual(settings["preview_mode"], "plain")
+        self.assertIn("흑백 ASCII를 유지", output)
+        settings["color_supported"] = True
+        call_with_input(main.choose_preview_mode, settings, ["3"])
+        self.assertEqual(settings["preview_mode"], "pixel")
+
     def test_all_samples_render_printable_bounded_ascii(self):
         for prompt in create_initial_prompts():
             with self.subTest(image=prompt["image_path"]):
