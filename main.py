@@ -90,6 +90,20 @@ def show_list(prompts):
     print_prompt_rows(list(enumerate(prompts, start=1)))
 
 
+def show_by_category(prompts):
+    print("\n[카테고리별 조회]")
+    categories = get_categories(prompts)
+    for number, category in enumerate(categories, start=1):
+        print(f"{number}. {category}")
+    number = read_number("카테고리 번호 (0: 취소): ", len(categories))
+    if number == 0:
+        return
+    category = categories[number - 1]
+    print(f"\n[{category}]")
+    rows = [(i, p) for i, p in enumerate(prompts, 1) if p["category"] == category]
+    print_prompt_rows(rows)
+
+
 def show_menu(actions):
     print("\n" + "=" * 46)
     print("NIJI Prompt Pocket | 프롬프트 관리")
@@ -109,6 +123,7 @@ def main():
     actions = {
         "1": ("프롬프트 추가", add_prompt),
         "2": ("전체 목록", show_list),
+        "3": ("카테고리별 조회", show_by_category),
     }
     print("NIJI용 예시 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
