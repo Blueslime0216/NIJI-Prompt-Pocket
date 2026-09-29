@@ -87,6 +87,39 @@ python -m unittest discover -s tests -v
 
 빈 입력·잘못된 번호·검색과 즐겨찾기의 번호 유지·프롬프트 저장·여러 줄 입력·이미지 연결/해제·손상 이미지·Pillow 미설치·다른 폴더에서 실행을 확인합니다.
 
+## 실행 화면
+
+아래 이미지는 `python main.py`를 새로 실행해 얻은 실제 출력 로그를 VSCode에서 열어 촬영한 것입니다. 추가·목록·검색·즐겨찾기·미리보기 시나리오는 각각 격리된 임시 데이터 폴더에서 실행했습니다. 개발 환경과 계정 화면은 공개하지 않았습니다.
+
+### 메인 메뉴
+
+![NIJI Prompt Pocket 메인 메뉴 실행 결과](docs/screenshots/menu.jpg)
+
+### 프롬프트 추가
+
+![새 프롬프트 추가 실행 결과](docs/screenshots/add.jpg)
+
+### 전체 목록
+
+![기본 프롬프트 전체 목록 실행 결과](docs/screenshots/list.jpg)
+
+### 키워드 검색
+
+![Live2D 키워드 검색 실행 결과](docs/screenshots/search.jpg)
+
+### 즐겨찾기
+
+![즐겨찾기 등록 및 목록 실행 결과](docs/screenshots/favorites.jpg)
+
+### 이미지 ASCII 미리보기
+
+![샘플 이미지의 ASCII 미리보기 실행 결과](docs/screenshots/ascii-preview.jpg)
+
+### Git 커밋 그래프
+
+Git 화면은 캡처 당시 로컬 `main`과 `origin/main`이 함께 가리키던 `524bb05`를 보여 줍니다. 이 스크린샷을 올리는 커밋은 캡처 뒤에 추가됩니다.
+
+![Git 커밋 그래프](docs/screenshots/git-history.jpg)
 ## Git 기록
 
 기능별로 커밋을 나누었으며 `feature/prompt-list` 브랜치에서 목록 기능을 개발한 뒤 `main`에 병합했습니다. 다음 명령으로 기록을 확인할 수 있습니다.
