@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+_dev/
+AGENTS.md
+과제.md
+local-images/
+submission/screenshots/
+submission/local-*.txt
