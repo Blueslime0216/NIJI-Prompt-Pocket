@@ -5,7 +5,7 @@ import shutil
 
 from seed_data import CATEGORIES, create_initial_prompts
 from image_preview import ImagePreviewError, normalize_image_path, render_ascii
-from terminal_support import enable_color
+from terminal_support import clear_screen, enable_color
 
 PREVIEW_LABELS = {"plain": "흑백 ASCII", "color": "컬러 ASCII", "pixel": "컬러 픽셀"}
 
@@ -111,6 +111,7 @@ def browse_prompt_rows(rows, mode="plain"):
         if number not in available:
             print("현재 목록에 있는 프롬프트 번호를 입력해 주세요.")
             continue
+        clear_screen()
         print_prompt_detail(available[number], mode)
         print("\n[현재 목록]")
         print_prompt_rows(rows)
@@ -276,6 +277,7 @@ def main():
         "8": ("참고 이미지 연결 / 교체 / 해제", attach_image),
         "9": ("이미지 표시 방식 변경", lambda _: choose_preview_mode(settings)),
     }
+    clear_screen()
     print("NIJI용 기본 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
     print(f"이미지 표시: {PREVIEW_LABELS[settings['preview_mode']]} (9번 메뉴에서 변경)")
@@ -289,6 +291,7 @@ def main():
             if action is None:
                 print("잘못된 메뉴 번호입니다. 메뉴에서 다시 선택해 주세요.")
                 continue
+            clear_screen()
             action[1](prompts)
     except (EOFError, KeyboardInterrupt):
         print("\n입력이 종료되었습니다.")

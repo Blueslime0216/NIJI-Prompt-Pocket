@@ -26,3 +26,13 @@ def enable_color():
         return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))
     except (AttributeError, OSError):
         return False
+
+
+def clear_screen():
+    """대화형 터미널 화면만 비워 다음 화면을 맨 위에 표시합니다."""
+    if not sys.stdout.isatty():
+        return False
+    if os.name != "nt" and os.environ.get("TERM") in (None, "", "dumb"):
+        return False
+    command = "cls" if os.name == "nt" else "clear"
+    return os.system(command) == 0
