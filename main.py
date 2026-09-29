@@ -75,6 +75,21 @@ def add_prompt(prompts):
     print(f"{len(prompts)}번 프롬프트를 추가했습니다: {title}")
 
 
+def print_prompt_rows(rows):
+    """필터링해도 원본 번호를 유지하도록 (번호, 프롬프트) 쌍을 출력합니다."""
+    if not rows:
+        print("표시할 프롬프트가 없습니다.")
+        return
+    for number, prompt in rows:
+        star = "⭐" if prompt["favorite"] else "  "
+        print(f"{number:>3}. {star} {prompt['title']} | {prompt['category']}")
+
+
+def show_list(prompts):
+    print(f"\n[전체 프롬프트: {len(prompts)}개]")
+    print_prompt_rows(list(enumerate(prompts, start=1)))
+
+
 def show_menu(actions):
     print("\n" + "=" * 46)
     print("NIJI Prompt Pocket | 프롬프트 관리")
@@ -93,6 +108,7 @@ def main():
     prompts = create_initial_prompts()
     actions = {
         "1": ("프롬프트 추가", add_prompt),
+        "2": ("전체 목록", show_list),
     }
     print("NIJI용 예시 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
