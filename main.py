@@ -104,6 +104,20 @@ def show_by_category(prompts):
     print_prompt_rows(rows)
 
 
+def search_prompts(prompts):
+    print("\n[프롬프트 검색]")
+    keyword = read_required("검색어 (제목 또는 내용): ").casefold()
+    rows = [
+        (i, p) for i, p in enumerate(prompts, 1)
+        if keyword in p["title"].casefold() or keyword in p["content"].casefold()
+    ]
+    if not rows:
+        print("검색 결과가 없습니다.")
+        return
+    print(f"\n[검색 결과: {len(rows)}개]")
+    print_prompt_rows(rows)
+
+
 def show_menu(actions):
     print("\n" + "=" * 46)
     print("NIJI Prompt Pocket | 프롬프트 관리")
@@ -124,6 +138,7 @@ def main():
         "1": ("프롬프트 추가", add_prompt),
         "2": ("전체 목록", show_list),
         "3": ("카테고리별 조회", show_by_category),
+        "4": ("키워드 검색", search_prompts),
     }
     print("NIJI용 예시 프롬프트 3개가 준비되어 있습니다.")
     print("추가한 데이터와 즐겨찾기는 종료하면 초기화됩니다.")
