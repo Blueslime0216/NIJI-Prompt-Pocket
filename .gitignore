@@ -13,3 +13,15 @@ AGENTS.md
 local-images/
 submission/screenshots/
 submission/local-*.txt
+.codex/
+.cursor/
+.idea/
+*.log
+*.pem
+*.key
+*.pfx
+credentials*.json
+secrets*.json
+/1.png
+/2.png
+/3.png

@@ -23,6 +23,8 @@ def resolve_image_path(value):
         if not path.is_file():
             raise ImagePreviewError("이미지 파일 경로를 입력해 주세요. 폴더는 연결할 수 없습니다.")
         return path
+    except ImagePreviewError:
+        raise
     except (OSError, RuntimeError, ValueError) as error:
         raise ImagePreviewError("이미지 파일을 찾을 수 없습니다. 경로를 확인해 주세요.") from error
 

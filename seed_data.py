@@ -1,41 +1,31 @@
-"""기본 데이터. 제출 전 본인의 이전 미션 프롬프트 3개로 교체하세요."""
+"""사용자가 제공한 NIJI 프롬프트와 참고 이미지. 실행마다 새 복사본을 사용합니다."""
 
 CATEGORIES = ["텍스트 생성", "이미지 생성", "영상 생성", "페르소나", "자동화", "기타"]
 
-# 특정 NIJI 버전의 옵션에 의존하지 않는 개발용 예시입니다.
 SAMPLE_PROMPTS = [
     {
-        "title": "달빛 아래 고양이 마법사",
-        "content": (
-            "A small black cat wizard wearing a pointed hat, sitting on a rooftop "
-            "under a crescent moon, warm glowing eyes, whimsical anime illustration, "
-            "clean line art, deep blue and soft gold palette, no text"
-        ),
+        "title": "Live2D 전신 캐릭터 (chaos 40)",
+        "content": "VTuber, full-body pose, girl, Live2D --chaos 40 --ar 2:3 --niji 7",
         "category": "이미지 생성",
         "favorite": False,
-        "image_path": None,
+        "image_path": "assets/sample-01.png",
     },
     {
-        "title": "비 오는 도시의 서점",
-        "content": (
-            "A quiet bookshop on a rainy evening in a narrow city street, "
-            "warm light spilling from the windows, reflections on wet pavement, "
-            "anime background art, detailed environment, peaceful mood, no text"
-        ),
+        "title": "Live2D 전신 캐릭터 (기본)",
+        "content": "VTuber, full-body pose, girl, Live2D --ar 2:3 --niji 7",
         "category": "이미지 생성",
         "favorite": False,
-        "image_path": None,
+        "image_path": "assets/sample-02.png",
     },
     {
-        "title": "봄 정원의 캐릭터 초상",
+        "title": "애니메이션 클로즈업 장면",
         "content": (
-            "Portrait of an original fantasy traveler in a spring garden, "
-            "short silver hair, green eyes, simple navy cloak, gentle smile, "
-            "anime character illustration, soft daylight, clear silhouette, no text"
+            "anime screencap, anime episode still, girl, close-up, cinematic lighting, "
+            "8k, high resolution --ar 16:9 --niji 7 --raw --stylize 200 --profile 7ztapke"
         ),
         "category": "이미지 생성",
         "favorite": False,
-        "image_path": None,
+        "image_path": "assets/sample-03.png",
     },
 ]
 
